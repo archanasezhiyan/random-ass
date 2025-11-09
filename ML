@@ -1,0 +1,425 @@
+#Program 1: Structuring Data for ML 
+ 
+Source Code: 
+ 
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import LabelEncoder 
+ 
+# Load the dataset 
+url = "E:/Iris.csv" 
+data = pd.read_csv(url) 
+ 
+# Display the dataset 
+print("Sample Data:\n", data.head()) 
+ 
+#Identify features (X) and target (y) 
+X = data.drop('Species', axis=1) 
+y = data['Species'] 
+ 
+# Encode categorical target variable 
+encoder = LabelEncoder() 
+y_encoded = encoder.fit_transform(y) 
+ 
+# Split the dataset into training and testing sets 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y_encoded, test_size=0.2, random_state=42 
+) 
+ 
+# Display structured data 
+print("\nStructured Training Data (X_train):\n", X_train.head()) 
+print("\nTraining Labels (y_train):\n", y_train[:5]) 
+
+
+============================================================================
+#Program 2: Data Preprocessing on Real-World Dataset 
+ 
+import pandas as pd 
+import numpy as np 
+from sklearn.preprocessing import LabelEncoder, StandardScaler 
+ 
+# Load dataset 
+url = "E:/ML Program Dataset/Titanic-Dataset.csv" 
+data = pd.read_csv(url) 
+ 
+print("Original Data Shape:", data.shape) 
+print("Missing Values Before Processing:\n", data.isnull().sum()) 
+ 
+# Handle missing values  
+data['Age'] = data['Age'].fillna(data['Age'].mean()) 
+data['Embarked'] = data['Embarked'].fillna(data['Embarked'].mode()[0]) 
+ 
+# Drop irrelevant or highly missing columns 
+data = data.drop(columns=['Cabin', 'Name', 'Ticket']) 
+ 
+# Handle outliers using IQR method for 'Fare' 
+Q1 = data['Fare'].quantile(0.25) 
+Q3 = data['Fare'].quantile(0.75) 
+IQR = Q3 - Q1 
+lower = Q1 - 1.5 * IQR 
+upper = Q3 + 1.5 * IQR 
+data = data[(data['Fare'] >= lower) & (data['Fare'] <= upper)] 
+ 
+#Encode categorical variables 
+encoder = LabelEncoder() 
+data['Sex'] = encoder.fit_transform(data['Sex']) 
+data['Embarked'] = encoder.fit_transform(data['Embarked']) 
+ 
+# Feature scaling 
+scaler = StandardScaler() 
+scaled_features = scaler.fit_transform(data[['Age', 'Fare', 'SibSp', 'Parch']]) 
+scaled_df = pd.DataFrame(scaled_features, columns=['Age', 'Fare', 'SibSp', 'Parch']) 
+ 
+# Replace original numeric columns with scaled values 
+data[['Age', 'Fare', 'SibSp', 'Parch']] = scaled_df 
+ 
+# Display cleaned and preprocessed dataset 
+print("\nData After Preprocessing:\n", data.head()) 
+print("\nMissing Values After Processing:\n", data.isnull().sum()) 
+print("\nFinal Data Shape:", data.shape)
+
+============================================================================================
+# Program 3: Feature Subset Selection Techniques 
+ 
+import pandas as pd 
+import numpy as np 
+from sklearn.preprocessing import LabelEncoder 
+from sklearn.model_selection import train_test_split 
+from sklearn.ensemble import RandomForestClassifier 
+from sklearn.feature_selection import RFE 
+from sklearn.linear_model import LogisticRegression 
+import warnings 
+ 
+# Suppress all harmless warnings 
+warnings.filterwarnings("ignore") 
+ 
+# Load the dataset 
+url = "E:/ML Program Dataset/Titanic-Dataset.csv" 
+data = pd.read_csv(url).copy()   # ensure fresh copy to avoid chained assignment issues 
+ 
+# Preprocess dataset (safe assignments) 
+data['Age'] = data['Age'].fillna(data['Age'].mean()) 
+data['Embarked'] = data['Embarked'].fillna(data['Embarked'].mode()[0]) 
+data = data.drop(columns=['Cabin', 'Name', 'Ticket']) 
+ 
+# Encode categorical variables 
+encoder = LabelEncoder() 
+data['Sex'] = encoder.fit_transform(data['Sex']) 
+data['Embarked'] = encoder.fit_transform(data['Embarked']) 
+ 
+# Split features and target 
+X = data[['Pclass', 'Sex', 'Age', 'Fare', 'SibSp', 'Parch', 'Embarked']] 
+y = data['Survived'] 
+ 
+# Filter Method (Correlation-based) 
+correlation = X.corr(numeric_only=True)  # explicit for sklearn >=1.5 compatibility 
+print("Correlation Matrix:\n", correlation) 
+print("\nHighly Correlated Features (>|0.8|):") 
+print(correlation[(correlation > 0.8) | (correlation < -0.8)]) 
+ 
+# Wrapper Method (Recursive Feature Elimination - RFE) 
+model = LogisticRegression(max_iter=2000, solver='lbfgs') 
+rfe = RFE(model, n_features_to_select=4) 
+fit = rfe.fit(X, y) 
+ 
+print("\nSelected Features using RFE:") 
+for i, col in enumerate(X.columns): 
+    if fit.support_[i]: 
+        print(f"- {col}") 
+ 
+# Embedded Method (Feature Importance using Random Forest) 
+rf = RandomForestClassifier(random_state=42) 
+rf.fit(X, y) 
+importances = pd.Series(rf.feature_importances_, 
+index=X.columns).sort_values(ascending=False) 
+ 
+print("\nFeature Importance (Random Forest):\n", importances) 
+ 
+# Display top features 
+top_features = importances.head(4).index.tolist() 
+print("\nTop 4 Important Features (Final Selected):", top_features)
+ 
+print("\nData Structuring Completed Successfully!") 
+
+===========================================================================================
+# Program 4: Measuring Model Performance on Real-World Dataset 
+ 
+import pandas as pd 
+from sklearn.datasets import load_breast_cancer 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.linear_model import LogisticRegression 
+from sklearn.metrics import ( 
+    accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, 
+classification_report 
+) 
+ 
+# Load real-world dataset 
+cancer = load_breast_cancer() 
+X = pd.DataFrame(cancer.data, columns=cancer.feature_names) 
+y = pd.Series(cancer.target) 
+ 
+print("Dataset Shape:", X.shape) 
+print("Target Classes:", cancer.target_names) 
+ 
+# Split into training and testing sets 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y, test_size=0.25, random_state=42) 
+ 
+# Feature scaling 
+scaler = StandardScaler() 
+X_train = scaler.fit_transform(X_train) 
+X_test = scaler.transform(X_test) 
+ 
+# Train a machine learning model 
+model = LogisticRegression(max_iter=1000, random_state=42) 
+model.fit(X_train, y_train) 
+ 
+# Make predictions 
+y_pred = model.predict(X_test) 
+ 
+# Measure model performance 
+print("\n--- Model Performance Metrics ---") 
+print("Accuracy :", accuracy_score(y_test, y_pred)) 
+print("Precision:", precision_score(y_test, y_pred)) 
+print("Recall   :", recall_score(y_test, y_pred)) 
+print("F1-Score :", f1_score(y_test, y_pred)) 
+ 
+# Detailed classification report 
+print("\nClassification Report:\n", classification_report(y_test, y_pred)) 
+ 
+# Confusion matrix 
+cm = confusion_matrix(y_test, y_pred) 
+print("\nConfusion Matrix:\n", cm)
+
+==============================================================================================
+#Program 5: naïve Bayesian Classifier 
+ 
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.naive_bayes import GaussianNB 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report 
+ 
+# Load dataset 
+data = pd.read_csv("E:/ML Program Dataset/Cancer_Data.csv") 
+ 
+#: Inspect the dataset 
+print("Shape of DataFrame:", data.shape) 
+print("Columns in data:", data.columns) 
+ 
+data = data.drop(['id', 'Unnamed: 32'], axis=1) 
+data = data.dropna() 
+ 
+# Split features and target 
+X = data.drop('diagnosis', axis=1) 
+y = data['diagnosis'] 
+ 
+# Split into train/test 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y, test_size=0.25, random_state=42) 
+ 
+# Train the model 
+model = GaussianNB() 
+model.fit(X_train, y_train) 
+ 
+# Predict 
+y_pred = model.predict(X_test) 
+ 
+# Evaluate 
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred)) 
+print("\nClassification Report:\n", classification_report(y_test, y_pred)) 
+print("Accuracy:", accuracy_score(y_test, y_pred))
+
+--------------------------------------------------------------------------------------
+#Program 7: Apply EM algorithm to cluster a set of data 
+ 
+import pandas as pd 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.mixture import GaussianMixture 
+from sklearn.metrics import silhouette_score 
+import matplotlib.pyplot as plt 
+ 
+# Load the Wine Quality Dataset 
+url = "E:/ML Program Dataset/winequality-white.csv" 
+data = pd.read_csv(url, sep=";") 
+ 
+# Inspect the dataset 
+print("Dataset shape:", data.shape) 
+print("Columns:", data.columns) 
+ 
+# Preprocess the data 
+X = data.drop('quality', axis=1)  # Features 
+y = data['quality']  # Target (not used in unsupervised learning) 
+ 
+# Feature scaling 
+scaler = StandardScaler() 
+X_scaled = scaler.fit_transform(X) 
+ 
+# Apply Gaussian Mixture Model (GMM) 
+n_clusters = 6 
+gmm = GaussianMixture(n_components=n_clusters, covariance_type='full', random_state=42) 
+gmm.fit(X_scaled) 
+ 
+# Predict cluster labels 
+labels = gmm.predict(X_scaled) 
+data['Cluster'] = labels 
+ 
+# Evaluate clustering quality 
+sil_score = silhouette_score(X_scaled, labels) 
+print("\nSilhouette Score:", sil_score) 
+ 
+# Visualize clusters (first two features) 
+plt.figure(figsize=(8, 6)) 
+plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=labels, cmap='viridis', s=50) 
+plt.title('Wine Clustering using GMM') 
+plt.xlabel(data.columns[0]) 
+plt.ylabel(data.columns[1]) 
+plt.colorbar(label='Cluster') 
+plt.show() 
+
+--------------------------------------------------------------------------------------
+#Program 8: k-NN Classification with automatic k selection on SMS Spam 
+dataset 
+ 
+import pandas as pd 
+from sklearn.model_selection import train_test_split, GridSearchCV 
+from sklearn.feature_extraction.text import TfidfVectorizer 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.neighbors import KNeighborsClassifier 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report 
+ 
+# Load dataset 
+data = pd.read_csv("E:/ML Program Dataset/spam.csv", encoding='latin-1') 
+data = data[['v1', 'v2']]  # 'v1' = label, 'v2' = message 
+data.rename(columns={'v1': 'label', 'v2': 'message'}, inplace=True) 
+ 
+# Encode labels: 'ham' = 0, 'spam' = 1 
+data['label'] = data['label'].map({'ham': 0, 'spam': 1}) 
+ 
+# Prepare features and target 
+X_text = data['message'] 
+y = data['label'] 
+ 
+# Convert text to numeric features using TF-IDF 
+vectorizer = TfidfVectorizer(stop_words='english', max_features=3000) 
+X = vectorizer.fit_transform(X_text).toarray() 
+ 
+# Split into train and test sets 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y, test_size=0.2, random_state=42 
+) 
+ 
+# Feature scaling 
+scaler = StandardScaler() 
+X_train_scaled = scaler.fit_transform(X_train) 
+X_test_scaled = scaler.transform(X_test) 
+ 
+# Use GridSearchCV to find the best k 
+param_grid = {'n_neighbors': list(range(1, 21))}  # try k from 1 to 20 
+knn = KNeighborsClassifier() 
+grid_search = GridSearchCV(knn, param_grid, cv=5, scoring='accuracy') 
+grid_search.fit(X_train_scaled, y_train) 
+ 
+# Best k value 
+best_k = grid_search.best_params_['n_neighbors'] 
+print("Best k found by cross-validation:", best_k) 
+ 
+# Train k-NN with best k 
+knn_best = KNeighborsClassifier(n_neighbors=best_k) 
+knn_best.fit(X_train_scaled, y_train) 
+ 
+# Make predictions 
+y_pred = knn_best.predict(X_test_scaled) 
+ 
+# Evaluate model 
+print("Accuracy:", accuracy_score(y_test, y_pred)) 
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred)) 
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+---------------------------------------------------------------------------------------------------
+ 
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.svm import SVC 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report 
+ 
+# Load the dataset 
+url = "E:/ML Program Dataset/diabetes.csv"  # Replace with your path 
+data = pd.read_csv(url) 
+ 
+# Inspect dataset 
+print("Dataset shape:", data.shape) 
+print("Columns:", data.columns) 
+ 
+# Prepare features and target 
+X = data.drop('Outcome', axis=1)  # Features 
+y = data['Outcome']               # Target (1 = diabetes, 0 = no diabetes) 
+ 
+# Split into training and testing sets 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y, test_size=0.2, random_state=42 
+) 
+ 
+# Feature scaling (important for SVM) 
+scaler = StandardScaler() 
+X_train_scaled = scaler.fit_transform(X_train) 
+X_test_scaled = scaler.transform(X_test) 
+ 
+# Train SVC with linear kernel 
+svc = SVC(kernel='linear', random_state=42) 
+svc.fit(X_train_scaled, y_train) 
+ 
+# Make predictions 
+y_pred = svc.predict(X_test_scaled) 
+ 
+# Evaluate the model 
+print("Accuracy:", accuracy_score(y_test, y_pred)) 
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred)) 
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+------------------------------------------------------------------------------------------
+# Program 12:Logistic Regression for Diabetes Prediction 
+ 
+import pandas as pd 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.linear_model import LogisticRegression 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report 
+ 
+# Load the dataset 
+# Replace the path with your local CSV file 
+# Example: "diabetes.csv" from Kaggle or UCI 
+url = "E:/ML Program Dataset/diabetes.csv" 
+data = pd.read_csv(url) 
+ 
+# Inspect the dataset 
+print("Dataset shape:", data.shape) 
+print("Columns:", data.columns) 
+print("First 5 rows:\n", data.head()) 
+ 
+# Prepare features and target 
+# Assume the dataset has a column 'Outcome' as target (1 = diabetes, 0 = no diabetes) 
+X = data.drop('Outcome', axis=1) 
+y = data['Outcome'] 
+ 
+# Split into training and testing sets 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X, y, test_size=0.2, random_state=42 
+) 
+# Feature scaling 
+scaler = StandardScaler() 
+X_train_scaled = scaler.fit_transform(X_train) 
+X_test_scaled = scaler.transform(X_test) 
+ 
+# Train Logistic Regression model 
+logreg = LogisticRegression(random_state=42) 
+logreg.fit(X_train_scaled, y_train) 
+ 
+# Make predictions 
+y_pred = logreg.predict(X_test_scaled) 
+ 
+# Evaluate the model 
+print("Accuracy:", accuracy_score(y_test, y_pred)) 
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred)) 
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
